@@ -1,0 +1,416 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Xml;
+
+ namespace TimbradoCepdi
+{
+    public class XmlRead
+    {
+
+        public XmlReader reader = null;
+        public String XML = "";
+
+
+        public XmlRead(String xml)
+        {
+            XML = xml;
+        }
+
+        public bool checaDecimales()
+        {
+            XmlDocument docCliente = new XmlDocument();
+            docCliente.LoadXml(XML);
+
+            XmlElement nodo = (XmlElement)docCliente.GetElementsByTagName("cfdi:Conceptos").Item(0);
+            XmlNodeList nodos = nodo.ChildNodes;
+
+            for (int i = 0; i < nodos.Count; i++)
+            {
+                XmlElement linea = (XmlElement)nodos.Item(i);
+
+                String importe = linea.GetAttribute("importe");
+                String valorUnitario = linea.GetAttribute("valorUnitario");
+                String cantidad = linea.GetAttribute("cantidad");
+
+                if ((importe != null && importe.LastIndexOf(".") > -1 && importe.Substring(importe.LastIndexOf(".") + 1).Length > 6) ||
+                    (valorUnitario != null && valorUnitario.LastIndexOf(".") > -1 && valorUnitario.Substring(valorUnitario.LastIndexOf(".") + 1).Length > 6) ||
+                    (cantidad != null && cantidad.LastIndexOf(".") > -1 && cantidad.Substring(cantidad.LastIndexOf(".") + 1).Length > 6))
+                {
+                    return false;
+                }
+            }
+
+            nodo = (XmlElement)docCliente.GetElementsByTagName("cfdi:Traslados").Item(0);
+
+            if (nodo != null)
+            {
+                nodos = nodo.ChildNodes;
+
+                for (int i = 0; i < nodos.Count; i++)
+                {
+                    XmlElement linea = (XmlElement)nodos.Item(i);
+
+                    String importe = linea.GetAttribute("importe");
+                    String tasa = linea.GetAttribute("tasa");
+
+                    if ((importe != null && importe.LastIndexOf(".") > -1 && importe.Substring(importe.LastIndexOf(".") + 1).Length > 6) ||
+                        (tasa != null && tasa.LastIndexOf(".") > -1 && tasa.Substring(tasa.LastIndexOf(".") + 1).Length > 6))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            nodo = (XmlElement)docCliente.GetElementsByTagName("cfdi:Retenciones").Item(0);
+            if (nodo != null)
+            {
+                nodos = nodo.ChildNodes;
+
+                for (int i = 0; i < nodos.Count; i++)
+                {
+                    XmlElement linea = (XmlElement)nodos.Item(i);
+
+                    String importe = linea.GetAttribute("importe");
+
+                    if ((importe != null && importe.LastIndexOf(".") > -1 && importe.Substring(importe.LastIndexOf(".") + 1).Length > 6))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public string extraeCambios(String xmlBase, String name)
+        {
+            XmlDocument docCliente = new XmlDocument();
+            docCliente.LoadXml(XML);
+
+            XmlDocument docBase = new XmlDocument();
+            docBase.LoadXml(xmlBase);
+
+
+            try
+            {
+                XmlElement nodo = (XmlElement)docCliente.GetElementsByTagName(name).Item(0);
+
+                for (int z = 0; z < nodo.Attributes.Count; z++)
+                {
+                    XmlAttribute xmlnode = nodo.Attributes[z];
+                    XmlNode nodeBase = docBase.SelectSingleNode("Comprobante/" + name);
+                    if (nodeBase != null)
+                    {
+                        for (int k = 0; k < nodeBase.Attributes.Count; k++)
+                        {
+                            if (nodeBase.Attributes[k].Name.Equals(xmlnode.Name))
+                            {
+                                nodeBase.Attributes[k].Value = xmlnode.Value;
+                            }
+                        }
+                    }
+                }
+
+                XmlNodeList nodos = nodo.ChildNodes;
+
+                for (int i = 0; i < nodos.Count; i++)
+                {
+                    XmlElement linea = (XmlElement)nodos.Item(i);
+                    XmlNode nodoBase = docBase.SelectSingleNode("Comprobante/" + name + "/" + linea.Name);
+
+                    if (nodoBase == null)
+                    {
+                        nodoBase = docBase.SelectSingleNode("Comprobante/" + name);
+                        XmlNode linea2 = docCliente.SelectSingleNode("Comprobante/" + name + "/" + linea.Name).Clone();
+                        //nodoBase.Im(linea2);
+                        XmlNode x = docBase.ImportNode(linea2, true);
+                        nodoBase.AppendChild(x);
+                    }
+                    else
+                    {
+                        for (int j = 0; j < linea.Attributes.Count; j++)
+                        {
+                            XmlAttribute xmlnode = linea.Attributes[j];
+                            XmlNode nodeBase = docBase.SelectSingleNode("Comprobante/" + name + "/" + linea.Name);
+                            if (nodeBase != null)
+                            {
+                                for (int k = 0; k < nodeBase.Attributes.Count; k++)
+                                {
+                                    if (nodeBase.Attributes[k].Name.Equals(xmlnode.Name))
+                                    {
+                                        nodeBase.Attributes[k].Value = xmlnode.Value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
+            return docBase.InnerXml;
+        }
+
+        public String getAttributeXML(XmlReader reader2, String node, String atribute)
+        {
+            String Respuesta = "";
+
+            while (reader2.Read())
+            {
+                switch (reader2.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader2.Name.Equals(node))
+                        {
+                            if (reader2.GetAttribute(atribute) != null)
+                            {
+                                Respuesta = reader2.GetAttribute(atribute);
+                                return Respuesta;
+                            }
+                        }
+                        break;
+                }
+            }
+            return "";
+        }
+
+        public String getAttribute(String node, String atribute)
+        {
+
+            String Respuesta = "";
+            reader = XmlReader.Create(new StringReader(XML));
+            while (reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader.Name.Equals(node))
+                        {
+                            if (reader.GetAttribute(atribute) != null)
+                            {
+                                Respuesta = reader.GetAttribute(atribute);
+                            }
+                        }
+                        break;
+                }
+            }
+            return Respuesta;
+        }
+        public String getNodeValue(String node)
+        {
+            String Respuesta = "";
+            reader = XmlReader.Create(new StringReader(XML));
+            while (reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader.Name.Equals(node))
+                        {
+                            Respuesta = reader.ReadString();
+                        }
+                        break;
+                }
+            }
+            return Respuesta;
+        }
+
+
+        public List<Dictionary<String, String>> getChildrenNodes(String node)
+        {
+            List<Dictionary<String, String>> conceptos = new List<Dictionary<string, string>>();
+            String Respuesta = "";
+            reader = XmlReader.Create(new StringReader(XML));
+            while (reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader.Name.Equals(node))
+                        {
+                            Respuesta = reader.ReadString();
+
+
+
+                        }
+                        break;
+                }
+            }
+            return conceptos;
+        }
+
+
+
+        public String getAddenda()
+        {
+            String Respuesta = "";
+            reader = XmlReader.Create(new StringReader(XML));
+            reader.ReadToFollowing("Addenda");
+            Respuesta = reader.ReadInnerXml().Trim();
+            return Respuesta;
+        }
+
+        public Dictionary<String, String> getAttributes(String node)
+        {
+            Dictionary<String, String> diccionario = new Dictionary<String, String>();
+            reader = XmlReader.Create(new StringReader(XML));
+            reader.ReadToFollowing(node);
+            if (reader.HasAttributes)
+            {
+                while (reader.MoveToNextAttribute())
+                {
+                    if (!diccionario.ContainsKey(reader.Name))
+                    {
+                        diccionario.Add(reader.Name, reader.Value);
+                    }
+                }
+            }
+            return diccionario;
+        }
+        public List<Dictionary<String, String>> getDetails()
+        {
+            List<Dictionary<String, String>> lista = new List<Dictionary<String, String>>();
+            Dictionary<String, String> diccionario = null;
+            reader = XmlReader.Create(new StringReader(XML));
+            reader.ReadToFollowing("VentaDetalle");
+            bool DetalleGrafico = false;
+            bool cierre = false;
+            while (!cierre && reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader.Name.Equals("Detalle"))
+                        {
+                            if (diccionario != null && diccionario.Count > 0)
+                            {
+                                DetalleGrafico = false;
+                                lista.Add(diccionario);
+                            }
+                            diccionario = new Dictionary<String, String>();
+                            if (reader.HasAttributes)
+                            {
+                                while (reader.MoveToNextAttribute())
+                                {
+                                    if (!diccionario.ContainsKey(reader.Name))
+                                    {
+                                        diccionario.Add(reader.Name, reader.Value);
+                                    }
+                                }
+                            }
+                        }
+                        else if (reader.Name.Equals("DetalleGrafico"))
+                        {
+                            DetalleGrafico = true;
+                            if (reader.HasAttributes)
+                            {
+                                while (reader.MoveToNextAttribute())
+                                {
+                                    if (!diccionario.ContainsKey("DG_" + reader.Name))
+                                    {
+                                        diccionario.Add("DG_" + reader.Name, reader.Value);
+                                    }
+                                }
+                            }
+                        }
+                        else if (reader.Name.Equals("Aduana") && DetalleGrafico)
+                        {
+                            if (reader.HasAttributes)
+                            {
+                                while (reader.MoveToNextAttribute())
+                                {
+                                    if (!diccionario.ContainsKey("DG_" + reader.Name))
+                                    {
+                                        diccionario.Add("DG_" + reader.Name, reader.Value);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (reader.HasAttributes)
+                            {
+                                while (reader.MoveToNextAttribute())
+                                {
+                                    if (!diccionario.ContainsKey(reader.Name))
+                                    {
+                                        diccionario.Add(reader.Name, reader.Value);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case XmlNodeType.EndElement:
+                        if (reader.Name.Equals("VentaDetalle"))
+                        {
+                            cierre = true;
+                        }
+                        break;
+                }
+            }
+            if (diccionario != null && diccionario.Count > 0)
+            {
+                DetalleGrafico = false;
+                lista.Add(diccionario);
+            }
+            return lista;
+        }
+        public Dictionary<String, String> getNodeValue(String parentNode, String node)
+        {
+            Dictionary<String, String> diccionario = new Dictionary<String, String>();
+            reader = XmlReader.Create(new StringReader(XML));
+            while (reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader.Name.Equals(parentNode))
+                        {
+                            if (reader.ReadToDescendant(node))
+                            {
+                                do
+                                {
+                                    if (node.Equals("Etiqueta"))
+                                    {
+                                        diccionario.Add("encabezado" + node + reader.GetAttribute("numero"), reader.GetAttribute("encabezado"));
+                                        diccionario.Add("valor" + node + reader.GetAttribute("numero"), reader.GetAttribute("valor"));
+                                    }
+                                    else if (node.Equals("EtiquetasTotales"))
+                                    {
+                                        diccionario.Add("etiquetaTotales" + reader.GetAttribute("numero"), reader.GetAttribute("valor"));
+                                    }
+                                    else if (node.Equals("Sucursal"))
+                                    {
+                                        diccionario.Add(node + reader.GetAttribute("numero"), reader.GetAttribute("valor"));
+                                    }
+                                    else if (node.Equals("Banco"))
+                                    {
+                                        diccionario.Add("referenciasBancos" + reader.GetAttribute("numero"), reader.GetAttribute("valor"));
+                                    }
+                                    else
+                                    {
+                                        if (reader.HasAttributes)
+                                        {
+                                            while (reader.MoveToNextAttribute())
+                                            {
+                                                if (!diccionario.ContainsKey(reader.Name))
+                                                {
+                                                    diccionario.Add(reader.Name, reader.Value);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                while (reader.ReadToNextSibling(node));
+                            }
+                        }
+                        break;
+                }
+            }
+            return diccionario;
+        }
+
+
+    }
+}

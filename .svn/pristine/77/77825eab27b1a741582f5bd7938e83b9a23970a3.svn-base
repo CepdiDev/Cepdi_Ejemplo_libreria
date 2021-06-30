@@ -1,0 +1,31 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace TimbradoCepdi
+{
+     public class Detallista
+    {
+         public String entityType { get; set; }
+         public int Number { get; set; }                  
+         public String code { get; set; }
+         public String ordenCompra { get; set; }
+         public Decimal totalAmount { get; set; }
+         public Decimal subTotal { get; set; }
+         public Decimal total { get; set; }
+         public String fechaOrdenCompra { get; set; }
+         public String codigoReferencia { get; set; }
+         public String folioPedimentoInterno { get; set; }
+         public String fechaRecibo { get; set; }
+         public String glnComprador { get; set; }
+         public String glnVendedor { get; set; }
+         public String IndentificadorComprador { get; set; }
+         public String IndentificadorVendedor { get; set; }
+         public String descuento { get; set; }
+         public int noConceptos { get; set; }
+         public String Moneda { get; set; }
+
+
+    }
+}

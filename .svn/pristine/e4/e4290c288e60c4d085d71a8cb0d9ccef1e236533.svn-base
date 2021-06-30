@@ -1,0 +1,52 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using TimbradoCepdi;
+
+namespace Test
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            String xml = "";
+            //Procedemos a leer un XML 2.2            
+            //Creamos el Objeto con el nombre tim con el cual podemos acceder a su metodo timbrar            
+            TimbradoCepdi.Timbrado tim = new TimbradoCepdi.Timbrado();
+            //Creamos el Objeto de tipo Respuesta en el cual vamos a recibir la informacion del timbrado            
+            TimbradoCepdi.Respuesta respuesta = new TimbradoCepdi.Respuesta();
+            //xml = File.ReadAllText(@"C:\Archivos\FVE5247276.xml", Encoding.UTF8);
+            //String Encabezado = "INVOICE|24.15|Pedido001|2016-05-19|12760953|Pedido001|2016-05-19|0000000093201|Complemento 1 /|0000000093201|93201|0|0|20.82|24.15|2|MN";
+            //String detalle = "0000000093201|1.00|0000000093201|CHALUPA GALVANIZADA 1/2-|5.00|2.50|2.50|0000000093201|2.00|0000000093201|CHALUPA POLIFLEX VERDE 95X57X50mm|2.00|4.16|4.16|";            
+            //xml = File.ReadAllText(@"C:\Users\Luis\Downloads\FVE5300965.xml", Encoding.UTF8);
+            //String Encabezado = "INVOICE|14.48|Pedido001|2016-06-02|12760953|Pedido001|2016-06-02|0000000093201|Complemento 1 /|0000000093201|93201|0|0|12.48|14.48|1|MN";
+            //String detalle = "0000000093201|1.00|0000000093201|CHALUPA POLIFLEX VERDE 95X57X50mm|3.00|4.16|4.16|";            
+            //xml = File.ReadAllText(@"C:\Archivos\FVE5301004.xml", Encoding.UTF8);
+            //String Encabezado = "INVOICE|0.00|Pedido002|2016-06-10|12761033|Pedido002|2016-06-10|0000000093201|Cepdi /|0000000093201|93201|0|0|66.60|0.00|2|MN";
+            //String detalle = "0000000093201|1.00|0000000093201|CHALUPA GALVANIZADA 1/2-|10.00|2.50|2.50|0000000093201|2.00|0000000093201|CHALUPA POLIFLEX VERDE 95X57X50mm|10.00|4.16|4.16|";
+            xml = File.ReadAllText(@"C:\Archivos\FVE5301012.xml", Encoding.UTF8);
+            String Encabezado = "INVOICE|0.00|Pedido002|2016-06-10|12761033|Pedido002|2016-06-10|0000000093201|Cepdi /|0000000093201|93201|0|0|34.16|0.00|2|MN";
+            String detalle = "0000000093201|1.00|0000000093201|CHALUPA GALVANIZADA 1/2-|12.00|2.50|2.50|0000000093201|2.00|0000000093201|CHALUPA POLIFLEX VERDE 95X57X50mm|1.00|4.16|4.16|"; 
+            // XML = Documento XML 2.2
+            //Encabezado 
+            respuesta = tim.timbrar(xml,Encabezado,detalle, "Userdemo5@mail.com", "demo#5");
+            if (respuesta.Exito)
+            {
+                Console.WriteLine(respuesta.CO);
+                Console.WriteLine(respuesta.noCertPac);
+                Console.WriteLine(respuesta.SelloSAT);
+                Console.WriteLine(respuesta.UUID);
+                Console.WriteLine(respuesta.Xml);
+                Console.WriteLine(respuesta.Mensaje);
+            }
+            else
+            {
+                Console.WriteLine(respuesta.Mensaje);
+                Console.WriteLine(respuesta.Codigo);
+            }
+        }
+    }
+}

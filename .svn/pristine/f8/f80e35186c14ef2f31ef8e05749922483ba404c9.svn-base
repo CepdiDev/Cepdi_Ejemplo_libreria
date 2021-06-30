@@ -1,0 +1,65 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace TimbradoCepdi
+{
+    public class DatosAdicionales
+    {
+        private String xmlDetallista = "";
+        private String XMLGenerales = "";
+        private String XMLConceptos = "";
+        private Boolean ConceptoAbierto = false;
+        private int ContadorConcepto = 0;
+
+        public void CreaXML()
+        {
+            xmlDetallista = "";
+            XMLGenerales = "";
+            XMLConceptos = "";
+        }
+
+        public void AgregaDatoAdicionalGlobal(String nombre, String valor)
+        {
+            XMLGenerales += "\n\t\t<" + nombre + ">" + valor + "</" + nombre + ">";
+        }
+
+        public void AbreConcepto()
+        {
+            ConceptoAbierto = true;
+            ContadorConcepto++;
+            XMLConceptos += "\n\t\t<Concepto Numero=\"" + ContadorConcepto + "\">";
+        }
+
+        public void AgregaDatoAdicionalConcepto(String nombre, String valor)
+        {
+
+            if (ConceptoAbierto)
+            {
+                XMLConceptos += "\n\t\t\t<" + nombre + ">" + valor + "</" + nombre + ">";
+            }
+        }
+
+        public void CierraConcepto()
+        {
+            ConceptoAbierto = false;
+            XMLConceptos += "\n\t\t</Concepto>";
+        }
+
+        public String FinalizaXML()
+        {
+            xmlDetallista = "<DatosExtra>\n\t<Generales>";
+            xmlDetallista += XMLGenerales;
+            xmlDetallista += "\n\t</Generales>";
+
+            xmlDetallista += "\n\t<Conceptos>";
+            xmlDetallista += XMLConceptos;
+            xmlDetallista += "\n\t</Conceptos>";
+
+            xmlDetallista += "\n</DatosExtra>";
+
+            return xmlDetallista;
+        }
+    }
+}

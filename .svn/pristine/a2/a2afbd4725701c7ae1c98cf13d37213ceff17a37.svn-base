@@ -1,0 +1,18 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace TimbradoCepdi
+{
+    public class Detalle
+    {        
+        public Double numeroSecuencial { get; set; }
+        public String gtin { get; set; }
+        public String noIndentificacionAdicional { get; set; }
+        public String logtext { get; set; }
+        public Decimal cantidad { get; set; }
+        public Decimal price { get; set; }
+        public Decimal priceneto { get; set; }
+    }
+}

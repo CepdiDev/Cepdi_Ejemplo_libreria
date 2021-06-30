@@ -1,0 +1,1004 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.Xsl;
+using TimbradoCepdi.WS;
+namespace TimbradoCepdi
+{
+    public class Timbrado
+    {
+        public Timbrado() 
+        { }
+        private const int UNI = 0, DIECI = 1, DECENA = 2, CENTENA = 3;
+        private static string[,] _matriz = new string[CENTENA + 1, 10]
+            {
+                {null," uno", " dos", " tres", " cuatro", " cinco", " seis", " siete", " ocho", " nueve"},
+                {" diez"," once"," doce"," trece"," catorce"," quince"," dieciséis"," diecisiete"," dieciocho"," diecinueve"},
+                {null,null,null," treinta"," cuarenta"," cincuenta"," sesenta"," setenta"," ochenta"," noventa"},
+                {null,null,null,null,null," quinientos",null," setecientos",null," novecientos"}
+            };
+        public const String SeparadorDecimalSalidaDefault = "";
+        public const String MascaraSalidaDecimalDefault = "pesos 00'/100'";
+        public const Int32 DecimalesDefault = 2;
+        public const Boolean LetraCapitalDefault = false;
+        public const Boolean ConvertirDecimalesDefault = false;
+        public const Boolean ApocoparUnoParteEnteraDefault = false;
+        public const Boolean ApocoparUnoParteDecimalDefault = false;
+        XNamespace  cfdi = "http://www.sat.gob.mx/cfd/2";
+        //String _cfdi = "cfdi:";
+        String _cfdi = "";
+        WS.comprobante comprobante = null;
+        WS.emisor emisor = null;
+        WS.receptor receptor = null;
+        WS.datosExtra datos = null;
+        List<WS.concepto> conceptos = null;
+        List<WS.impuesto> impuestos = null;
+        String addenda = "";
+        Respuesta result = null;
+        private XslCompiledTransform xsltCadenaOriginal = null;
+        public Respuesta timbrar(String XML,String Encabezado,String Detalle, String Usr, String Psw)
+        {
+            try
+            {
+                String Detallista = "";
+                result = new Respuesta();                
+                    if (Encabezado != "" && Detalle != "")
+                    {
+                        Detallista = genera(Encabezado, Detalle);
+                    }
+                    if (accesoInternet())
+                    {
+                        result = Proceso(XML, Usr, Psw, Detallista);
+                    }
+                    else
+                    {
+                        result.Mensaje = "No hay conexion a internet";
+                        result.Codigo = 001;
+                    }               
+
+            }
+            catch (Exception ex)
+            {
+                result.Codigo = 99;
+                result.Mensaje = "Error en la Estructura";
+            }
+            return result;
+        }
+        private Respuesta Proceso(String XML, String Usr, String Psw,String Detallista)
+        {
+            Respuesta resultado = new Respuesta();
+            int intentos = 1;
+            try
+            {
+                comprobante = new WS.comprobante();
+                emisor = new WS.emisor();
+                receptor = new WS.receptor();
+                conceptos = new List<concepto>();
+                impuestos = new List<impuesto>();
+                datos = new datosExtra();               
+                XmlRead xmlr = new XmlRead(XML);
+                String noCertificado = "";
+                //Comprobante
+                #region Comprobante
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "serie") != "")
+                {
+                    comprobante.Serie = xmlr.getAttribute(_cfdi + "Comprobante", "serie");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "folio") != "")
+                {
+                    comprobante.Folio = Convert.ToInt32(xmlr.getAttribute(_cfdi + "Comprobante", "folio"));
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "fecha") != "")
+                {
+                    comprobante.Fecha = xmlr.getAttribute(_cfdi + "Comprobante", "fecha");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "formaDePago") != "")
+                {
+                    comprobante.FormadePago = xmlr.getAttribute(_cfdi + "Comprobante", "formaDePago");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "noCertificado") != "")
+                {
+                    noCertificado = xmlr.getAttribute(_cfdi + "Comprobante", "noCertificado");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "condicionesDePago") != "")
+                {
+                    comprobante.CondicionesDePago = xmlr.getAttribute(_cfdi + "Comprobante", "condicionesDePago");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "subTotal") != "")
+                {
+                    comprobante.Subtotal = Convert.ToDouble(xmlr.getAttribute(_cfdi + "Comprobante", "subTotal"));
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "descuento") != "")
+                {
+                    comprobante.Descuento = Convert.ToDouble(xmlr.getAttribute(_cfdi + "Comprobante", "descuento"));
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "motivoDescuento") != "")
+                {
+                    comprobante.MotivoDescuento = xmlr.getAttribute(_cfdi + "Comprobante", "motivoDescuento");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "TipoCambio") != "")
+                {
+                    comprobante.TipoCambio = Convert.ToDouble(xmlr.getAttribute(_cfdi + "Comprobante", "TipoCambio"));
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "Moneda") != "")
+                {
+                    comprobante.Moneda = xmlr.getAttribute(_cfdi + "Comprobante", "Moneda");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "total") != "")
+                {
+                    comprobante.Total = Convert.ToDouble(xmlr.getAttribute(_cfdi + "Comprobante", "total"));
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "tipoDeComprobante") != "")
+                {
+                    comprobante.TipodeComprobante = xmlr.getAttribute(_cfdi + "Comprobante", "tipoDeComprobante");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "metodoDePago") != "")
+                {
+                    comprobante.MetododePago = xmlr.getAttribute(_cfdi + "Comprobante", "metodoDePago");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "LugarExpedicion") != "")
+                {
+                    comprobante.LugarDeExpedicion = xmlr.getAttribute(_cfdi + "Comprobante", "LugarExpedicion");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "NumCtaPago") != "")
+                {
+                    comprobante.Cuenta = xmlr.getAttribute(_cfdi + "Comprobante", "NumCtaPago");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "FolioFiscalOrig") != "")
+                {
+                    comprobante.FolioFiscalOriginal = xmlr.getAttribute(_cfdi + "Comprobante", "FolioFiscalOrig");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "SerieFolioFiscalOrig") != "")
+                {
+                    comprobante.SerieFolioFiscalOriginal = xmlr.getAttribute(_cfdi + "Comprobante", "SerieFolioFiscalOrig");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "FechaFolioFiscalOrig") != "")
+                {
+                    comprobante.FechaFolioFiscalOriginal = xmlr.getAttribute(_cfdi + "Comprobante", "FechaFolioFiscalOrig");
+                }
+                if (xmlr.getAttribute(_cfdi + "Comprobante", "MontoFolioFiscalOrig") != "")
+                {
+                    comprobante.MontoFolioFiscalOriginal = Convert.ToDouble(xmlr.getAttribute(_cfdi + "Comprobante", "MontoFolioFiscalOrig"));
+                }
+                #endregion Comprobante
+                // Emisor
+                #region Emisor
+                if (xmlr.getAttribute(_cfdi + "Emisor", "rfc") != "")
+                {
+                    emisor.RFC = xmlr.getAttribute(_cfdi + "Emisor", "rfc");
+                }
+                if (xmlr.getAttribute(_cfdi + "Emisor", "nombre") != "")
+                {
+                    emisor.RazonSocial = xmlr.getAttribute(_cfdi + "Emisor", "nombre");
+                }
+                if (xmlr.getAttribute(_cfdi + "RegimenFiscal", "Regimen") != "")
+                {
+                    emisor.RegimenFiscal = xmlr.getAttribute(_cfdi + "RegimenFiscal", "Regimen");
+                }
+                #endregion Emisor
+                //domicilio emisor
+                #region domicilioemisor
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "calle") != "")
+                {
+                    emisor.Calle = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "calle");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "noExterior") != "")
+                {
+                    emisor.NumExt = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "noExterior");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "noInterior") != "")
+                {
+                    emisor.NumInt = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "noInterior");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "colonia") != "")
+                {
+                    emisor.Colonia = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "colonia");
+                }
+                ///========================================================
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "localidad") != "")
+                {
+                    emisor.Ciudad = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "localidad");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "referencia") != "")
+                {
+                    emisor.Referencia = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "referencia");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "municipio") != "")
+                {
+                    emisor.Municipio = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "municipio");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "estado") != "")
+                {
+                    emisor.Estado = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "estado");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "pais") != "")
+                {
+                    emisor.Pais = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "pais");
+                }
+                if (xmlr.getAttribute(_cfdi + "DomicilioFiscal", "codigoPostal") != "")
+                {
+                    emisor.CP = xmlr.getAttribute(_cfdi + "DomicilioFiscal", "codigoPostal");
+                }
+                #endregion domiciliemisor
+
+                //Expedido en 
+                #region Expedidoen
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "calle") != "")
+                {
+                    emisor.suc_Calle = xmlr.getAttribute(_cfdi + "ExpedidoEn", "calle");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "noExterior") != "")
+                {
+                    emisor.suc_NumExt = xmlr.getAttribute(_cfdi + "ExpedidoEn", "noExterior");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "noInterior") != "")
+                {
+                    emisor.suc_NumInt = xmlr.getAttribute(_cfdi + "ExpedidoEn", "noInterior");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "colonia") != "")
+                {
+                    emisor.suc_Colonia = xmlr.getAttribute(_cfdi + "ExpedidoEn", "colonia");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "localidad") != "")
+                {
+                    emisor.suc_Ciudad = xmlr.getAttribute(_cfdi + "ExpedidoEn", "localidad");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "referencia") != "")
+                {
+                    //emisor.suc_ = xmlr.getAttribute(_cfdi + "ExpedidoEn", "referencia");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "municipio") != "")
+                {
+                    emisor.suc_Municipio = xmlr.getAttribute(_cfdi + "ExpedidoEn", "municipio");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "estado") != "")
+                {
+                    emisor.suc_Estado = xmlr.getAttribute(_cfdi + "ExpedidoEn", "estado");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "pais") != "")
+                {
+                    emisor.suc_Pais = xmlr.getAttribute(_cfdi + "ExpedidoEn", "pais");
+                }
+                if (xmlr.getAttribute(_cfdi + "ExpedidoEn", "codigoPostal") != "")
+                {
+                    emisor.suc_CP = xmlr.getAttribute(_cfdi + "ExpedidoEn", "codigoPostal");
+                }
+                #endregion expedido
+
+                //Receptor
+                #region Receptor
+                if (xmlr.getAttribute(_cfdi + "Receptor", "rfc") != "")
+                {
+                    receptor.RFC = xmlr.getAttribute(_cfdi + "Receptor", "rfc");
+                }
+                if (xmlr.getAttribute(_cfdi + "Receptor", "nombre") != "")
+                {
+                    receptor.RazonSocial = xmlr.getAttribute(_cfdi + "Receptor", "nombre");
+                }
+                //Domicilio Receptor
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "calle") != "")
+                {
+                    receptor.Calle = xmlr.getAttribute(_cfdi + "Domicilio", "calle");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "noExterior") != "")
+                {
+                    receptor.NumExt = xmlr.getAttribute(_cfdi + "Domicilio", "noExterior");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "noInterior") != "")
+                {
+                    receptor.NumInt = xmlr.getAttribute(_cfdi + "Domicilio", "noInterior");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "colonia") != "")
+                {
+                    receptor.Colonia = xmlr.getAttribute(_cfdi + "Domicilio", "colonia");
+                }
+                ///========================================================
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "localidad") != "")
+                {
+                    receptor.Ciudad = xmlr.getAttribute(_cfdi + "Domicilio", "localidad");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "referencia") != "")
+                {
+                    receptor.Referencia = xmlr.getAttribute(_cfdi + "Domicilio", "referencia");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "municipio") != "")
+                {
+                    receptor.Municipio = xmlr.getAttribute(_cfdi + "Domicilio", "municipio");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "estado") != "")
+                {
+                    receptor.Estado = xmlr.getAttribute(_cfdi + "Domicilio", "estado");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "pais") != "")
+                {
+                    receptor.Pais = xmlr.getAttribute(_cfdi + "Domicilio", "pais");
+                }
+                if (xmlr.getAttribute(_cfdi + "Domicilio", "codigoPostal") != "")
+                {
+                    receptor.CP = xmlr.getAttribute(_cfdi + "Domicilio", "codigoPostal");
+                }
+                #endregion Receptor
+
+                //Comceptos
+                #region conceptos
+                conceptos = procesaconceptos(XML, xmlr);
+                #endregion conceptos
+
+                //Impuestos
+                impuestos.AddRange(procesaimpuestosT(XML, xmlr));
+                impuestos.AddRange(procesaimpuestosR(XML, xmlr));
+
+                //addenda                
+                addenda = "<cfdi:Addenda>";
+                addenda += xmlr.getAddenda();
+                addenda += "</cfdi:Addenda>";
+                datos.Addenda = Detallista;
+                WS.respuestaTimbrado respuesta = new WS.respuestaTimbrado();
+                resultado = null;
+                WS.WS ws = new WS.WS();
+                emisor.RFC = "AAA010101AAA";
+                while (intentos <= 3)
+                {
+                    try
+                    {
+                        DateTime fechadoc = Convert.ToDateTime(comprobante.Fecha);
+                        DateTime fecha = DateTime.Now;
+                        TimeSpan horas = (fecha - fechadoc);
+                        int dias = horas.Days;
+                        if (dias < 3)
+                        {
+                            respuesta = ws.TimbraComprobante(Usr, Psw, comprobante, emisor, receptor, conceptos.ToArray(), impuestos.ToArray(), new certificado(), datos);
+                        }
+                        else
+                        {
+                            respuesta.Exitoso = false;
+                            respuesta.CodigoError = 79;
+                            respuesta.MensajeError = "Fecha fuera de rango , la fecha no puede sobrepasar las 72 horas";
+                        }
+                        intentos = 5;
+                    }
+                    catch(Exception ex)
+                    {
+                        intentos++;
+                    }
+
+                }
+                resultado = procesaRespuesta(respuesta,addenda);
+            }
+            catch (Exception ex)
+            {
+                resultado.Codigo = 99;
+                resultado.Mensaje = "Error en la Estructura";
+            }
+            return resultado;
+        }
+        private Respuesta procesaRespuesta(WS.respuestaTimbrado respuesta,String Addenda)
+        {
+            Respuesta resp =new Respuesta();
+            if(respuesta.Exitoso==true)
+            {
+                XmlRead xmlread = new XmlRead(respuesta.XMLTimbrado);
+                resp.Exito = true;
+                resp.Mensaje = "Timbrado Exitosamente";
+                resp.UUID = respuesta.UUID;
+                if (!addenda.Equals("<cfdi:Addenda></cfdi:Addenda>"))
+                {
+                    resp.Xml = respuesta.XMLTimbrado.Replace("</cfdi:Complemento>", "</cfdi:Complemento>" + addenda);
+                }
+                else
+                {
+                    resp.Xml = respuesta.XMLTimbrado;
+                }
+                //resp.CO = generaCO(respuesta.XMLTimbrado);
+                resp.CO = respuesta.MensajeError;
+                resp.SelloSAT = xmlread.getAttribute("tfd:TimbreFiscalDigital", "selloSAT");
+                resp.SelloCFD = xmlread.getAttribute("tfd:TimbreFiscalDigital", "selloCFD");
+                resp.FechaTimbrado = xmlread.getAttribute("tfd:TimbreFiscalDigital", "FechaTimbrado");
+                resp.noCertPac = xmlread.getAttribute("tfd:TimbreFiscalDigital", "noCertificadoSAT");
+            }
+            else
+            {
+                resp.Codigo = respuesta.CodigoError;
+                resp.Mensaje = respuesta.MensajeError;
+                respuesta.Exitoso = false;
+                resp.UUID = respuesta.UUID;
+                resp.Xml = "";
+                resp.CO = "";
+                resp.SelloSAT = "";
+                resp.SelloCFD = "";
+                resp.FechaTimbrado = "";
+                resp.noCertPac = "";
+            }
+            return resp;
+        }
+        private String generaCO(String xml)
+        {
+            if (xsltCadenaOriginal == null)
+            {
+                String xsltPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\" + Path.GetFileName("http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_2/cadenaoriginal_3_2.xslt");
+
+                while (!File.Exists(xsltPath)) { descargaXslts(xsltPath); }
+                xsltCadenaOriginal = new XslCompiledTransform();
+                XsltSettings settings = new XsltSettings(false, true);
+                while (xsltCadenaOriginal.OutputSettings == null)
+                {
+                    xsltCadenaOriginal.Load(xsltPath, settings, new XmlUrlResolver());
+                }
+            }
+            using (StringReader sr = new StringReader(xml))
+            {
+                using (XmlReader xr = XmlReader.Create(sr))
+                {
+                    using (StringWriter sw = new StringWriter())
+                    {
+                        xsltCadenaOriginal.Transform(xr, null, sw);
+                        return sw.ToString();
+                    }
+                }
+            }
+        }
+        private static void descargaXslts(String xsltPath)
+        {
+            try
+            {
+                using (WebClient wc = new WebClient())
+                {
+                    wc.DownloadFileAsync(new System.Uri("http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_2/cadenaoriginal_3_2.xslt"), xsltPath);
+                    wc.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                //Console.WriteLine("Exception caught in process: {0}", ex.ToString());
+            }
+        }
+        private List<WS.concepto> procesaconceptos(String xml, XmlRead xmlr)
+        {
+            List<WS.concepto> conceptos_Tem = new List<WS.concepto>();            
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(xml);
+            XmlNodeList concep = doc.GetElementsByTagName("Conceptos");
+            XmlNodeList xconcep = ((XmlElement)concep[0]).GetElementsByTagName("Concepto");
+             foreach (XmlElement nodo in xconcep)
+            {                
+                WS.concepto concepto_Tem = new WS.concepto();
+                if (nodo.GetAttribute("cantidad")!="")
+                 {
+                concepto_Tem.Cantidad = Double.Parse(nodo.GetAttribute("cantidad"));
+                 }
+                 if(nodo.GetAttribute("unidad")!="")
+                 {
+                concepto_Tem.Unidad = nodo.GetAttribute("unidad");
+                 }
+                 if (nodo.GetAttribute("noIndentificacion")!="")
+                 {
+                concepto_Tem.NoIdentificacion = nodo.GetAttribute("noIndentificacion");
+                 }
+                 if (nodo.GetAttribute("descripcion")!="")
+                 {
+                concepto_Tem.Descripcion = nodo.GetAttribute("descripcion");
+                 }
+                 if (nodo.GetAttribute("valorUnitario")!="")
+                 {
+                     concepto_Tem.Precio = Double.Parse(nodo.GetAttribute("valorUnitario"));
+                 }
+                 if (nodo.GetAttribute("importe") != "")
+                 {
+                     concepto_Tem.Importe = Double.Parse(nodo.GetAttribute("importe"));
+                 }
+                
+                if(nodo.InnerXml!="")
+                {
+                    XElement x = XElement.Parse(nodo.InnerXml);
+                    if (x.Attribute("numero") != null)
+                    {
+                        concepto_Tem.NumDocAduanero = (x.Attribute("numero").Value);
+                    }
+                    if (x.Attribute("fecha") != null)
+                    { concepto_Tem.FechaAduanera = x.Attribute("fecha").Value; }
+                    else { concepto_Tem.FechaAduanera = (DateTime.Now).ToString(); }
+                    if (x.Attribute("aduana") != null)
+                    {
+                        concepto_Tem.Aduana = x.Attribute("aduana").Value;
+                    }
+                }
+                conceptos_Tem.Add(concepto_Tem);
+            }
+            return conceptos_Tem;
+        }
+        private List<WS.impuesto> procesaimpuestosT(String xml, XmlRead xmlr)
+        {
+            List<WS.impuesto> impuestos_Tem = new List<WS.impuesto>();
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(xml);
+            XmlNodeList ximpuestos = doc.GetElementsByTagName("Impuestos");
+            XmlNodeList impuestos = ((XmlElement)ximpuestos[0]).GetElementsByTagName("Traslado");
+            foreach (XmlElement nodo in impuestos)
+            {
+                WS.impuesto impuesto_Tem = new WS.impuesto();     
+                if (nodo.GetAttribute("impuesto") != "")
+                {
+                    impuesto_Tem.Nombre = nodo.GetAttribute("impuesto");
+                }                
+                if (nodo.GetAttribute("tasa") != "")
+                {
+                    impuesto_Tem.Tasa = Convert.ToDouble(Double.Parse(nodo.GetAttribute("tasa")) < 1 ? Double.Parse(nodo.GetAttribute("tasa")) * 100 : Double.Parse(nodo.GetAttribute("tasa")));
+                }
+                if (nodo.GetAttribute("importe") != "")
+                {
+                    impuesto_Tem.Importe = Double.Parse(nodo.GetAttribute("importe"));
+                }
+                impuesto_Tem.Tipo = "T";
+                impuestos_Tem.Add(impuesto_Tem);
+            }
+            return impuestos_Tem;
+        }
+        private List<WS.impuesto> procesaimpuestosR(String xml, XmlRead xmlr)
+        {
+            List<WS.impuesto> impuestos_Tem = new List<WS.impuesto>();
+            XmlDocument doc = new XmlDocument();
+            doc.LoadXml(xml);
+            XmlNodeList ximpuestos = doc.GetElementsByTagName("Impuestos");
+            XmlNodeList impuestos = ((XmlElement)ximpuestos[0]).GetElementsByTagName("Retencion");
+            foreach (XmlElement nodo in impuestos)
+            {
+                WS.impuesto impuesto_Tem = new WS.impuesto();
+                if (nodo.GetAttribute("impuesto") != "")
+                {
+                    impuesto_Tem.Nombre = nodo.GetAttribute("impuesto");
+                }
+                if (nodo.GetAttribute("tasa") != "")
+                {
+                    impuesto_Tem.Tasa = Convert.ToDouble(Double.Parse(nodo.GetAttribute("tasa")) < 1 ? Double.Parse(nodo.GetAttribute("tasa")) * 100 : Double.Parse(nodo.GetAttribute("tasa")));
+                }
+                if (nodo.GetAttribute("importe") != "")
+                {
+                    impuesto_Tem.Importe = Double.Parse(nodo.GetAttribute("importe"));
+                }
+                impuesto_Tem.Tipo = "R";
+                impuestos_Tem.Add(impuesto_Tem);
+            }
+            return impuestos_Tem;
+        }
+        private static String quitarAddenda(XElement xml)
+        {            
+            XElement addenda = xml.Element("Addenda");
+            if (addenda != null)
+            {
+                addenda.Remove();
+                return xml.ToString();
+            }
+            return xml.ToString();
+        }
+        private bool accesoInternet()
+        {
+            try
+            {
+                IPHostEntry host = Dns.GetHostEntry("www.google.com");
+                return true;
+            }
+            catch (Exception ex)
+            {                
+                return false;
+            }
+        }
+        private String genera(String Encabezado,String Items)
+        {
+            String XmlDetallista = "";
+            Detallista principal = new Detallista();
+            List<Detalle> detalles = new List<Detalle>();
+            String[] Detallista = null;
+            String[] Conceptos = null;
+            Detallista = Encabezado.Split('|');
+            Conceptos = Items.Split('|');
+            principal = procesaEncabezado(Detallista);
+            detalles = procesaDetalle(Conceptos);
+             XmlDetallista= detalle(principal, detalles);
+             return XmlDetallista;
+        }
+        private Detallista procesaEncabezado(String[] Encabezado)
+        {
+            Detallista detail=new Detallista();
+            for (int i = 0; i < Encabezado.Count();i++ )
+            {
+                if(i==0)
+                {
+                    detail.entityType = Encabezado[i];
+                }
+                if (i == 1)
+                {
+                    detail.totalAmount = Convert.ToDecimal(Encabezado[i]);
+                }
+                if (i == 2)
+                {
+                    detail.ordenCompra = Encabezado[i];
+                }
+                if (i == 3)
+                {
+                    detail.fechaOrdenCompra = Encabezado[i];
+                }
+                if (i == 4)
+                {
+                    detail.codigoReferencia = Encabezado[i];
+                }
+                if (i == 5)
+                {
+                    detail.folioPedimentoInterno = Encabezado[i];
+                }
+                if (i == 6)
+                {
+                    detail.fechaRecibo = Encabezado[i];
+                }
+                if (i == 7)
+                {
+                    detail.glnComprador = Encabezado[i];
+                }
+                if (i == 8)
+                {
+                    detail.IndentificadorComprador = Encabezado[i];
+                }
+                if (i == 9)
+                {
+                    detail.glnVendedor = Encabezado[i];
+                }
+                if (i == 10)
+                {
+                    detail.IndentificadorVendedor = Encabezado[i];
+                }
+                if (i == 11)
+                {
+                    detail.descuento = Encabezado[i];
+                }
+                //Espacio 12 no especificado
+                if (i == 13)
+                {
+                    detail.subTotal = Convert.ToDecimal(Encabezado[i]);
+                }
+                if (i == 14)
+                {
+                    detail.total = Convert.ToDecimal(Encabezado[i]);
+                }
+                if (i == 15)
+                {
+                    detail.noConceptos = Convert.ToInt16(Encabezado[i]);
+                }
+                if (i == 16)
+                {
+                    if (Encabezado[i] == "MN")
+                    {
+                        detail.Moneda = "MXN";
+                    }
+                    else
+                    {
+                        detail.Moneda = Encabezado[i];
+                    }
+                }
+
+            }
+
+
+            return detail;
+        }
+        private List<Detalle> procesaDetalle(String[] cadena) 
+        {
+            int cuantadetails = 1;
+            List<Detalle> detalles = new List<Detalle>();
+            Detalle detalle = new Detalle();
+            for (int i = 0; i < cadena.Count();i++ )
+            {
+                if (cuantadetails == 8)
+                {
+                    if (detalle.cantidad != 0)
+                    {
+                        detalles.Add(detalle);
+                    }
+                    cuantadetails = 1;
+                    detalle = new Detalle();
+                }
+                if(cuantadetails==1)
+                {
+                    detalle.gtin = cadena[i];
+                }
+                if (cuantadetails == 2)
+                {
+                    detalle.numeroSecuencial = Convert.ToDouble(cadena[i]);
+                }
+                if (cuantadetails == 3)
+                {
+                    detalle.noIndentificacionAdicional = cadena[i];
+                }
+                if (cuantadetails == 4)
+                {
+                    detalle.logtext = cadena[i];
+                }
+                if (cuantadetails == 5)
+                {
+                    detalle.cantidad = Convert.ToDecimal(cadena[i]);
+                }
+                if (cuantadetails == 6)
+                {
+                    detalle.price = Convert.ToDecimal(cadena[i]);
+                }
+                if (cuantadetails == 7)
+                {
+                    detalle.priceneto = Convert.ToDecimal(cadena[i]);
+                }
+
+                cuantadetails++;
+            }
+            if (detalle.cantidad != 0)
+            {
+                detalles.Add(detalle);
+            }
+            return detalles;
+        }
+        private String detalle(Detallista detallista, List<Detalle> detalles)
+        {
+            decimal num = 153250;
+            // Elementos Faltantes
+            detallista.code = "ZZZ";
+            //Fin de elemtos Faltantes
+            String xmlDetallista = "";
+            xmlDetallista += "<detallista:detallista type=\"SimpleInvoiceType\" documentStructureVersion=\"AMC8.1\" documentStatus=\"ORIGINAL\" contentVersion=\"1.3.1\">\n\t\t";
+            if (detallista.entityType != null)
+            {
+                xmlDetallista += "<detallista:requestForPaymentIdentification><detallista:entityType>" + detallista.entityType + "</detallista:entityType></detallista:requestForPaymentIdentification>\n\t\t";
+            }
+
+            if (true)
+            {
+
+                xmlDetallista += "<detallista:specialInstruction ";
+                xmlDetallista += detallista.code != null ? "code=\" " + detallista.code + " \"" : "";
+                xmlDetallista += "><detallista:text>(" + Convierte(detallista.totalAmount).ToUpper()+" "+detallista.Moneda + ".)</detallista:text></detallista:specialInstruction>\n\t\t";
+            }
+            if (detallista.ordenCompra != null)
+            {
+                if (detallista.fechaOrdenCompra != null)
+                {
+                    xmlDetallista += "<detallista:orderIdentification>\n\t\t<detallista:referenceIdentification type=\"ON\">" + detallista.ordenCompra + "</detallista:referenceIdentification>\n\t\t<detallista:ReferenceDate>" + detallista.fechaOrdenCompra + "</detallista:ReferenceDate>\n\t\t</detallista:orderIdentification>\n\t\t";
+                }
+                else
+                {
+                    xmlDetallista += "<detallista:orderIdentification>\n\t\t<detallista:referenceIdentification type=\"ON\">" + detallista.ordenCompra + "</detallista:referenceIdentification>\n\t\t</detallista:orderIdentification>\n\t\t";
+                }
+            }
+            if (detallista.codigoReferencia != null)
+            {
+                xmlDetallista += "<detallista:AdditionalInformation>\n\t\t<detallista:referenceIdentification type=\"DQ\">" + detallista.codigoReferencia + "</detallista:referenceIdentification></detallista:AdditionalInformation>\n\t\t";
+            }
+            xmlDetallista += "<detallista:DeliveryNote>\n\t\t";
+            if (detallista.folioPedimentoInterno != null)
+            {
+                xmlDetallista += "<detallista:referenceIdentification>" + detallista.folioPedimentoInterno + "</detallista:referenceIdentification>\n\t\t";
+
+            }
+            if (detallista.fechaRecibo != null)
+            {
+                xmlDetallista += "<detallista:ReferenceDate>" + detallista.fechaRecibo + "</detallista:ReferenceDate>\n\t\t";
+            }
+            xmlDetallista += "</detallista:DeliveryNote>\n\t\t";
+            xmlDetallista += "<detallista:buyer>\n\t\t";
+            if (detallista.glnComprador != null)
+            {
+                xmlDetallista += "<detallista:gln>" + detallista.glnComprador + "</detallista:gln>\n\t\t";
+            }
+            xmlDetallista += "<detallista:contactInformation>\n\t\t";
+            if (detallista.IndentificadorComprador != null)
+            {
+                xmlDetallista += "<detallista:personOrDepartmentName><detallista:text>" + detallista.IndentificadorComprador + "</detallista:text></detallista:personOrDepartmentName>\n\t\t";
+            }
+            xmlDetallista += "</detallista:contactInformation>\n\t\t";
+            xmlDetallista += "</detallista:buyer>\n\t\t";
+            xmlDetallista += "<detallista:seller>\n\t\t";
+            if (detallista.glnVendedor != null)
+            {
+                xmlDetallista += "<detallista:gln>" + detallista.glnVendedor + "</detallista:gln>\n\t\t";
+            }
+            if (detallista.IndentificadorVendedor != null)
+            {
+                xmlDetallista += "<detallista:alternatePartyIdentification type=\"SELLER_ASSIGNED_IDENTIFIER_FOR_A_PARTY\">" + detallista.IndentificadorVendedor + "</detallista:alternatePartyIdentification>\n\t\t";
+            }
+            xmlDetallista += "</detallista:seller>\n\t\t";
+
+            xmlDetallista += "<detallista:allowanceCharge allowanceChargeType=\"ALLOWANCE_GLOBAL\" settlementType=\"OFF_INVOICE\">\n\t\t";
+            xmlDetallista += "<detallista:specialServicesType>AJ</detallista:specialServicesType>\n\t\t";
+            xmlDetallista += "<detallista:monetaryAmountOrPercentage>\n\t\t";
+            xmlDetallista += "<detallista:rate base=\"INVOICE_VALUE\">\n\t\t";
+            if (detallista.descuento != null)
+            {
+                xmlDetallista += "<detallista:percentage>" + detallista.descuento.ToString() + "</detallista:percentage>\n\t\t";
+            }
+            xmlDetallista += "</detallista:rate>\n\t\t";
+            xmlDetallista += "</detallista:monetaryAmountOrPercentage>\n\t\t";
+            xmlDetallista += "</detallista:allowanceCharge>\n\t\t";
+
+            ///Inicia Detalle
+            ///
+            foreach (Detalle detalle in detalles)
+            {
+                xmlDetallista += "<detallista:lineItem type=\"SimpleInvoiceLineItemType\" number=\"" + detalle.numeroSecuencial.ToString() + "\">\n\t\t";
+                xmlDetallista += "<detallista:tradeItemIdentification>\n\t\t";
+                if (detalle.gtin != null)
+                {
+                    xmlDetallista += "<detallista:gtin>" + detalle.gtin + "</detallista:gtin>\n\t\t";
+                }
+                xmlDetallista += "</detallista:tradeItemIdentification>\n\t\t";
+                if (detalle.noIndentificacionAdicional != null)
+                {
+                    xmlDetallista += "<detallista:alternateTradeItemIdentification type=\"BUYER_ASSIGNED\">" + detalle.noIndentificacionAdicional + "</detallista:alternateTradeItemIdentification>\n\t\t";
+                }
+                xmlDetallista += "<detallista:tradeItemDescriptionInformation language=\"ES\">\n\t\t";
+                if (detalle.logtext != null)
+                {
+                    xmlDetallista += "<detallista:longText>" + detalle.logtext + "</detallista:longText>\n\t\t";
+                }
+                xmlDetallista += "</detallista:tradeItemDescriptionInformation>\n\t\t";
+                if (detalle.cantidad != 0)
+                {
+                    xmlDetallista += "<detallista:invoicedQuantity unitOfMeasure=\"NA\">" + detalle.cantidad.ToString() + "</detallista:invoicedQuantity>\n\t\t";
+                }
+
+                xmlDetallista += "<detallista:grossPrice>\n\t\t";
+                if (detalle.price != 0)
+                {
+                    xmlDetallista += "<detallista:Amount>" + detalle.price.ToString() + "</detallista:Amount>\n\t\t";
+                }
+                xmlDetallista += "</detallista:grossPrice>\n\t\t";
+                xmlDetallista += "<detallista:netPrice>\n\t\t";
+                if (detalle.priceneto != 0)
+                {
+                    xmlDetallista += "<detallista:Amount>" + detalle.priceneto.ToString() + "</detallista:Amount>\n\t\t";
+                }
+                xmlDetallista += "</detallista:netPrice>\n\t\t";
+                xmlDetallista += "<detallista:totalLineAmount>\n\t\t";
+                xmlDetallista += "<detallista:grossAmount>";
+                xmlDetallista += "<detallista:Amount>" + detalle.cantidad * detalle.price + "</detallista:Amount>\n\t\t";
+                xmlDetallista += "</detallista:grossAmount>\n\t\t";
+                xmlDetallista += "<detallista:netAmount>\n\t\t";
+                xmlDetallista += "<detallista:Amount>" + detalle.cantidad * detalle.priceneto + "</detallista:Amount>\n\t\t";
+                xmlDetallista += "</detallista:netAmount>\n\t\t";
+                xmlDetallista += "</detallista:totalLineAmount>\n\t\t";
+                xmlDetallista += "</detallista:lineItem>\n\t\t";
+            }
+            //Finaliza Detalle
+            xmlDetallista += "<detallista:totalAmount>\n\t\t";
+            if (true)
+            {
+                xmlDetallista += "<detallista:Amount>" + detallista.subTotal.ToString() + "</detallista:Amount>\n\t\t";
+            }
+            xmlDetallista += "</detallista:totalAmount>\n\t\t";
+            xmlDetallista += "<detallista:TotalAllowanceCharge allowanceOrChargeType=\"ALLOWANCE\">\n\t\t";
+            xmlDetallista += "<detallista:specialServicesType>AJ</detallista:specialServicesType>\n\t\t";
+            xmlDetallista += "<detallista:Amount>" + detallista.total.ToString() + "</detallista:Amount>\n\t\t";
+            xmlDetallista += "</detallista:TotalAllowanceCharge>\n\t\t";
+            xmlDetallista += "</detallista:detallista>\n\t\t";
+
+            return xmlDetallista;
+            //    String XML = String.Format("{0}", new XElement(detallista+"Detallista",
+            //new XAttribute("Bar", "some & value"),
+            //new XElement("Nested", "data")));
+            //    Console.WriteLine(XML);
+            //    File.WriteAllText(@"C:\Users\Luis\Desktop\documentacion\alcione\detallista\ejemplo.xml", XML);
+            //    Console.WriteLine(
+            //new XElement("Foo",
+            //new XAttribute("Bar", "some & value"),
+            //new XElement("Nested", "data")));           
+        }
+        public static String Convierte(Decimal Numero)
+        {
+            return letras(Numero, DecimalesDefault, SeparadorDecimalSalidaDefault, MascaraSalidaDecimalDefault, true, LetraCapitalDefault, ConvertirDecimalesDefault, ApocoparUnoParteEnteraDefault, ApocoparUnoParteDecimalDefault);
+        }
+        private static String letras(Decimal Numero, Int32 Decimales, String SeparadorDecimalSalida, String MascaraSalidaDecimal, Boolean EsMascaraNumerica, Boolean LetraCapital, Boolean ConvertirDecimales, Boolean ApocoparUnoParteEntera, Boolean ApocoparUnoParteDecimal)
+        {
+            Int64 Num;
+            Int32 terna, centenaTerna, decenaTerna, unidadTerna, iTerna;
+            String cadTerna;
+            StringBuilder Resultado = new StringBuilder();
+
+            Num = (Int64)Math.Abs(Numero);
+
+            if (Num >= 1000000000000 || Num < 0) throw new ArgumentException("El número '" + Numero.ToString() + "' excedió los límites del conversor: [0;1.000.000.000.000)");
+            if (Num == 0)
+                Resultado.Append(" cero");
+            else
+            {
+                iTerna = 0;
+                while (Num > 0)
+                {
+                    iTerna++;
+                    cadTerna = String.Empty;
+                    terna = (Int32)(Num % 1000);
+
+                    centenaTerna = (Int32)(terna / 100);
+                    decenaTerna = terna % 100;
+                    unidadTerna = terna % 10;
+
+                    if ((decenaTerna > 0) && (decenaTerna < 10))
+                        cadTerna = _matriz[UNI, unidadTerna] + cadTerna;
+                    else if ((decenaTerna >= 10) && (decenaTerna < 20))
+                        cadTerna = cadTerna + _matriz[DIECI, unidadTerna];
+                    else if (decenaTerna == 20)
+                        cadTerna = cadTerna + " veinte";
+                    else if ((decenaTerna > 20) && (decenaTerna < 30))
+                        cadTerna = " veinti" + _matriz[UNI, unidadTerna].Substring(1);
+                    else if ((decenaTerna >= 30) && (decenaTerna < 100))
+                        if (unidadTerna != 0)
+                            cadTerna = _matriz[DECENA, (Int32)(decenaTerna / 10)] + " y" + _matriz[UNI, unidadTerna] + cadTerna;
+                        else
+                            cadTerna += _matriz[DECENA, (Int32)(decenaTerna / 10)];
+
+                    switch (centenaTerna)
+                    {
+                        case 1:
+                            if (decenaTerna > 0) cadTerna = " ciento" + cadTerna;
+                            else cadTerna = " cien" + cadTerna;
+                            break;
+                        case 5:
+                        case 7:
+                        case 9:
+                            cadTerna = _matriz[CENTENA, (Int32)(terna / 100)] + cadTerna;
+                            break;
+                        default:
+                            if ((Int32)(terna / 100) > 1) cadTerna = _matriz[UNI, (Int32)(terna / 100)] + "cientos" + cadTerna;
+                            break;
+                    }
+                    //Reemplazo el 'uno' por 'un' si no es en las únidades o si se solicító apocopar
+                    if ((iTerna > 1 | ApocoparUnoParteEntera) && decenaTerna == 21)
+                        cadTerna = cadTerna.Replace("veintiuno", "veintiún");
+                    else if ((iTerna > 1 | ApocoparUnoParteEntera) && unidadTerna == 1 && decenaTerna != 11)
+                        cadTerna = cadTerna.Substring(0, cadTerna.Length - 1);
+                    //Acentúo 'veintidós', 'veintitrés' y 'veintiséis'
+                    else if (decenaTerna == 22) cadTerna = cadTerna.Replace("veintidos", "veintidós");
+                    else if (decenaTerna == 23) cadTerna = cadTerna.Replace("veintitres", "veintitrés");
+                    else if (decenaTerna == 26) cadTerna = cadTerna.Replace("veintiseis", "veintiséis");
+
+                    //Completo miles y millones
+                    switch (iTerna)
+                    {
+                        case 3:
+                            if (Numero < 999) cadTerna += " cientos";
+                            else if (Numero < 999999) cadTerna += " miles";
+                            else if (Numero < 2000000) cadTerna += " millón";
+                            else cadTerna += " millones";
+                            break;
+                        case 2:
+                        case 4:
+                            if (terna > 0) cadTerna += " mil";
+                            break;
+                    }
+                    Resultado.Insert(0, cadTerna);
+                    Num = (Int32)(Num / 1000);
+                } //while
+            }
+
+            //Se agregan los decimales si corresponde
+            if (Decimales > 0)
+            {
+                Resultado.Append(" " + SeparadorDecimalSalida + " ");
+                Int32 EnteroDecimal = (Int32)Math.Round((Double)(Numero - (Int64)Numero) * Math.Pow(10, Decimales), 0);
+                if (ConvertirDecimales)
+                {
+                    Boolean esMascaraDecimalDefault = MascaraSalidaDecimal == MascaraSalidaDecimalDefault;
+                    Resultado.Append(letras((Decimal)EnteroDecimal, 0, null, null, EsMascaraNumerica, false, false, (ApocoparUnoParteDecimal && !EsMascaraNumerica/*&& !esMascaraDecimalDefault*/), false) + " "
+                        + (EsMascaraNumerica ? "" : MascaraSalidaDecimal));
+                }
+                else
+                    if (EsMascaraNumerica) Resultado.Append(EnteroDecimal.ToString(MascaraSalidaDecimal));
+                    else Resultado.Append(EnteroDecimal.ToString() + " " + MascaraSalidaDecimal);
+            }
+            //Se pone la primer letra en mayúscula si corresponde y se retorna el resultado
+            if (LetraCapital)
+                return Resultado[1].ToString().ToUpper() + Resultado.ToString(2, Resultado.Length - 2);
+            else
+                return Resultado.ToString().Substring(1);
+        }
+               
+    }
+}

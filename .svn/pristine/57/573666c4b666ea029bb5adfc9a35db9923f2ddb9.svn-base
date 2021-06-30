@@ -1,0 +1,26 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+
+namespace TimbradoCepdi
+{
+    public class Respuesta
+    { 
+        public Respuesta ()
+        {
+
+        }
+        public String Xml{get;set;}
+        public String CO { get; set; }
+        public String SelloSAT { get; set; }
+        public String UUID { get; set; }
+        public String noCertPac { get; set; }
+        public String Mensaje { get; set; }
+        public int  Codigo { get; set; }
+        public Boolean Exito { get; set; }
+        public String  FechaTimbrado { get; set; }
+        public String SelloCFD { get; set; }
+    }
+}

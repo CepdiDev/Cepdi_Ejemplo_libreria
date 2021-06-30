@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <configSections>
+    <sectionGroup name="applicationSettings" type="System.Configuration.ApplicationSettingsGroup, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+      <section name="TimbradoCepdi.Properties.Settings" type="System.Configuration.ClientSettingsSection, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" requirePermission="false" />
+    </sectionGroup>
+  </configSections>
+  <applicationSettings>
+    <TimbradoCepdi.Properties.Settings>
+      <setting name="TimbradoCepdi_WS_WS" serializeAs="String">
+        <value>https://timbrador.cepdi.mx:8443/WSDemo/WS</value>
+      </setting>
+    </TimbradoCepdi.Properties.Settings>
+  </applicationSettings>
+  <startup>
+    <supportedRuntime version="v2.0.50727" />
+  </startup>
+  <connectionStrings>
+    <add name="DefaultConnection" connectionString="Data Source = |SQL/CE|" />
+  </connectionStrings>
+</configuration>
