@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31402.337
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{9775FDA1-6A9F-4A51-B581-96616839FB34}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApiTimbrado", "TestApiTimbrado\TestApiTimbrado.csproj", "{A5D2CFC3-6864-4B02-A564-9830860FB40C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +17,16 @@ Global
 		{9775FDA1-6A9F-4A51-B581-96616839FB34}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9775FDA1-6A9F-4A51-B581-96616839FB34}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9775FDA1-6A9F-4A51-B581-96616839FB34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5D2CFC3-6864-4B02-A564-9830860FB40C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5D2CFC3-6864-4B02-A564-9830860FB40C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5D2CFC3-6864-4B02-A564-9830860FB40C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5D2CFC3-6864-4B02-A564-9830860FB40C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C557D34D-F0A5-4E3A-BF69-49728C4EE655}
 	EndGlobalSection
 	GlobalSection(SubversionScc) = preSolution
 		Svn-Managed = True
