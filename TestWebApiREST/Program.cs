@@ -24,6 +24,7 @@ namespace TestWebApiREST
 
             if (Token != null)
             {
+                //Timbrar Documentos
                 string[] ListaArchivos = Directory.GetFiles(UrlEntrada, "*.*", SearchOption.AllDirectories);
 
                 foreach (var archivo in ListaArchivos)
@@ -76,6 +77,14 @@ namespace TestWebApiREST
                     }
 
                 }
+
+                //Obtener PDF
+                //ObtenerPDFComprobante()
+
+                //Cancelar Comprobante
+                //CancelarComprobante()
+
+
             }
         }
 
@@ -86,14 +95,14 @@ namespace TestWebApiREST
             client.Timeout = -1;
             var request = new RestRequest(Method.POST);
             request.AlwaysMultipartFormData = true;
-            request.AddParameter("usuario", Usuario);
-            request.AddParameter("password", Password);
+            request.AddParameter("Usuario", Usuario);
+            request.AddParameter("Password", Password);
             IRestResponse response = client.Execute(request);
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 var Json = JObject.Parse(response.Content);
-                string token = Json.GetValue("token").ToString();
+                string token = Json.GetValue("Token").ToString();
                 return token;
             }
             else
@@ -109,9 +118,9 @@ namespace TestWebApiREST
             var request = new RestRequest(Method.POST);
             request.AddHeader("Authorization", "Bearer " + Token);
             request.AlwaysMultipartFormData = true;
-            request.AddParameter("usuario", Usuario);
-            request.AddParameter("password", Password);
-            request.AddParameter("texto", Layout);
+            request.AddParameter("Usuario", Usuario);
+            request.AddParameter("Password", Password);
+            request.AddParameter("Lineas", Layout);
             IRestResponse response = client.Execute(request);
             Console.WriteLine(response.Content);
 
@@ -125,9 +134,28 @@ namespace TestWebApiREST
             var request = new RestRequest(Method.POST);
             request.AddHeader("Authorization", "Bearer " + Token);
             request.AlwaysMultipartFormData = true;
-            request.AddParameter("usuario", Usuario);
-            request.AddParameter("password", Password);
-            request.AddParameter("uuid", UUID);
+            request.AddParameter("Usuario", Usuario);
+            request.AddParameter("Password", Password);
+            request.AddParameter("UUID", UUID);
+            IRestResponse response = client.Execute(request);
+            Console.WriteLine(response.Content);
+
+            return JObject.Parse(response.Content);
+        }
+
+        public static JObject CancelarComprobante(string Usuario, string Password, string RFCEmisor, string RFCReceptor, string Total, string UUID, string Token)
+        {
+            var client = new RestClient(ConfigurationManager.AppSettings["UrlObtenerPDFComprobante"]);
+            client.Timeout = -1;
+            var request = new RestRequest(Method.POST);
+            request.AddHeader("Authorization", "Bearer " + Token);
+            request.AlwaysMultipartFormData = true;
+            request.AddParameter("Usuario", Usuario);
+            request.AddParameter("Password", Password);
+            request.AddParameter("RFCEmisor", RFCEmisor);
+            request.AddParameter("RFCReceptor", RFCReceptor);
+            request.AddParameter("Total", Total);
+            request.AddParameter("UUID", UUID);
             IRestResponse response = client.Execute(request);
             Console.WriteLine(response.Content);
 
