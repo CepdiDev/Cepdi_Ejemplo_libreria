@@ -25,64 +25,69 @@ namespace TestWebApiREST
             if (Token != null)
             {
                 //Timbrar Documentos
-                string[] ListaArchivos = Directory.GetFiles(UrlEntrada, "*.*", SearchOption.AllDirectories);
+                //string[] ListaArchivos = Directory.GetFiles(UrlEntrada, "*.*", SearchOption.AllDirectories);
 
-                foreach (var archivo in ListaArchivos)
-                {
-                    string UrlCarpetaSalida = archivo.Replace("Entrada", "Salida");
-                    string UrlXML = UrlCarpetaSalida + "/Comprobante.xml";
-                    string UrlLog = UrlCarpetaSalida + "/Log.txt";
-                    Directory.CreateDirectory(UrlCarpetaSalida);
-                    File.WriteAllText(UrlLog, ".- Inicia timbrado");
+                //foreach (var archivo in ListaArchivos)
+                //{
+                //    string UrlCarpetaSalida = archivo.Replace("Entrada", "Salida");
+                //    string UrlXML = UrlCarpetaSalida + "/Comprobante.xml";
+                //    string UrlLog = UrlCarpetaSalida + "/Log.txt";
+                //    Directory.CreateDirectory(UrlCarpetaSalida);
+                //    File.WriteAllText(UrlLog, ".- Inicia timbrado");
 
-                    try
-                    {
-                        string Layout = File.ReadAllText(archivo);
+                //    try
+                //    {
+                //        string Layout = File.ReadAllText(archivo);
 
-                        //Timbrar Archivo
-                        var respuestaTimbrado = TimbrarComprobante(Layout, Usuario, Password, Token);
-                        if (respuestaTimbrado.GetValue("exitoso").ToString() == "true")
-                        {
-                            using (StreamWriter Log = new StreamWriter(UrlLog, true))
-                            {
-                                Log.WriteLine(".- Timbrado con exito");
-                                Log.Close();
-                            }
-                            File.WriteAllText(UrlXML, respuestaTimbrado.GetValue("XmlTimbrado").ToString());
-                            using (StreamWriter Log = new StreamWriter(UrlLog, true))
-                            {
-                                Log.WriteLine(".- Se crea xml en la carpeta");
-                                Log.Close();
-                            }
-                        }
-                        else
-                        {
-                            using (StreamWriter Log = new StreamWriter(UrlLog, true))
-                            {
-                                Log.WriteLine(".- Error al timbrar");
-                                Log.WriteLine(".- Mensaje: " + respuestaTimbrado.GetValue("mensajeError").ToString());
-                                Log.WriteLine(".- Codigo Error: " + respuestaTimbrado.GetValue("codigoError").ToString());
-                                Log.Close();
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        using (StreamWriter Log = new StreamWriter(UrlLog, true))
-                        {
-                            Log.WriteLine(".- Se produjo una Exception");
-                            Log.WriteLine(".- Mensaje: " + e.Message);
-                            Log.Close();
-                        }
-                    }
+                //        //Timbrar Archivo
+                //        var respuestaTimbrado = TimbrarComprobante(Layout, Usuario, Password, Token);
+                //        if (respuestaTimbrado.GetValue("exitoso").ToString() == "true")
+                //        {
+                //            using (StreamWriter Log = new StreamWriter(UrlLog, true))
+                //            {
+                //                Log.WriteLine(".- Timbrado con exito");
+                //                Log.Close();
+                //            }
+                //            File.WriteAllText(UrlXML, respuestaTimbrado.GetValue("XmlTimbrado").ToString());
+                //            using (StreamWriter Log = new StreamWriter(UrlLog, true))
+                //            {
+                //                Log.WriteLine(".- Se crea xml en la carpeta");
+                //                Log.Close();
+                //            }
+                //        }
+                //        else
+                //        {
+                //            using (StreamWriter Log = new StreamWriter(UrlLog, true))
+                //            {
+                //                Log.WriteLine(".- Error al timbrar");
+                //                Log.WriteLine(".- Mensaje: " + respuestaTimbrado.GetValue("mensajeError").ToString());
+                //                Log.WriteLine(".- Codigo Error: " + respuestaTimbrado.GetValue("codigoError").ToString());
+                //                Log.Close();
+                //            }
+                //        }
+                //    }
+                //    catch (Exception e)
+                //    {
+                //        using (StreamWriter Log = new StreamWriter(UrlLog, true))
+                //        {
+                //            Log.WriteLine(".- Se produjo una Exception");
+                //            Log.WriteLine(".- Mensaje: " + e.Message);
+                //            Log.Close();
+                //        }
+                //    }
 
-                }
+                //}
 
                 //Obtener PDF
                 //ObtenerPDFComprobante()
 
                 //Cancelar Comprobante
                 //CancelarComprobante()
+
+
+                //------- Timbrar Comprobante KAVAK
+
+                TimbrarComprobanteKAVAK(File.ReadAllText("C:/Entrada/Lineas.txt"), File.ReadAllText("C:/Entrada/Usuario.txt"), File.ReadAllText("C:/Entrada/Password.txt"), Token);
 
 
             }
@@ -102,7 +107,7 @@ namespace TestWebApiREST
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 var Json = JObject.Parse(response.Content);
-                string token = Json.GetValue("Token").ToString();
+                string token = Json.GetValue("token").ToString();
                 return token;
             }
             else
@@ -125,6 +130,23 @@ namespace TestWebApiREST
             Console.WriteLine(response.Content);
 
             return JObject.Parse(response.Content);
+        }
+
+        public static JObject TimbrarComprobanteKAVAK(string Layout, string Usuario, string Password, string Token)
+        {
+            var client = new RestClient(ConfigurationManager.AppSettings["UrlTimbrarComprobanteKAVAK"]);
+            client.Timeout = -1;
+            var request = new RestRequest(Method.POST);
+            request.AddHeader("Authorization", "Bearer " + Token);
+            request.AlwaysMultipartFormData = true;
+            request.AddParameter("Usuario", Usuario);
+            request.AddParameter("Password", Password);
+            request.AddParameter("Lineas", Layout);
+            IRestResponse response = client.Execute(request);
+            Console.WriteLine(response.Content);
+
+            return JObject.Parse(response.Content);
+
         }
 
         public static JObject ObtenerPDFComprobante(string UUID, string Usuario, string Password, string Token)
