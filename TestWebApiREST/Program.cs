@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -132,16 +134,38 @@ namespace TestWebApiREST
             return JObject.Parse(response.Content);
         }
 
+        //public static JObject TimbrarComprobanteKAVAK(string Layout, string Usuario, string Password, string Token)
+        //{
+        //    var client = new RestClient(ConfigurationManager.AppSettings["UrlTimbrarComprobanteKAVAK"]);
+        //    client.Timeout = -1;
+        //    var request = new RestRequest(Method.POST);
+        //    request.AddHeader("Authorization", "Bearer " + Token);
+        //    request.AlwaysMultipartFormData = true;
+        //    request.AddParameter("Usuario", Usuario);
+        //    request.AddParameter("Password", Password);
+        //    request.AddParameter("Lineas", Layout);
+        //    IRestResponse response = client.Execute(request);
+        //    Console.WriteLine(response.Content);
+
+        //    return JObject.Parse(response.Content);
+
+        //}
+
         public static JObject TimbrarComprobanteKAVAK(string Layout, string Usuario, string Password, string Token)
         {
+            dynamic clase = new ExpandoObject();
+            clase.Usuario = Usuario; 
+            clase.Password = Password;
+            clase.Lineas = Layout;
+
+            var body = JsonConvert.SerializeObject(clase);
+
             var client = new RestClient(ConfigurationManager.AppSettings["UrlTimbrarComprobanteKAVAK"]);
             client.Timeout = -1;
             var request = new RestRequest(Method.POST);
             request.AddHeader("Authorization", "Bearer " + Token);
-            request.AlwaysMultipartFormData = true;
-            request.AddParameter("Usuario", Usuario);
-            request.AddParameter("Password", Password);
-            request.AddParameter("Lineas", Layout);
+            request.AddHeader("Content-Type", "application/json");
+            request.AddParameter("application/json", body, ParameterType.RequestBody);
             IRestResponse response = client.Execute(request);
             Console.WriteLine(response.Content);
 
