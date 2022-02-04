@@ -206,7 +206,7 @@ namespace Test
         {
             XmlUtils cancel = new XmlUtils();
 
-            respuestaCancelacion respuesta = cancel.CancelaCFDI("Usuario", "Pass", "Emisor", "Receptor", "Total", "UUID", 0, "UUIDRelacionado", "P");
+            respuestaCancelacion respuesta = cancel.CancelaCFDI("Usuario", "Pass", "Emisor", "Receptor", "Total", "UUID", 0, "UUIDRelacionado", "D");
             if (respuesta.CancelacionExitosa)
                 return respuesta.AcuseCancelacion;
             else
@@ -218,7 +218,7 @@ namespace Test
         {
             XmlUtils pdf = new XmlUtils();
 
-            respuestaPDF respuesta = pdf.ObtenerPDF("Usuario", "Pass", "UUID", "P");
+            respuestaPDF respuesta = pdf.ObtenerPDF("Usuario", "Pass", "UUID", "D");
             if (respuesta.Exitoso)
                 return respuesta.PDF;
             else
