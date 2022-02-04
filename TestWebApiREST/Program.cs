@@ -181,14 +181,18 @@ namespace TestWebApiREST
 
         public static JObject ObtenerPDFComprobante(string UUID, string Usuario, string Password, string Token)
         {
+            dynamic clase = new ExpandoObject();
+            clase.Usuario = Usuario;
+            clase.Password = Password;
+            clase.UUID = UUID;
+
+            var body = JsonConvert.SerializeObject(clase);
+
             var client = new RestClient(ConfigurationManager.AppSettings["UrlObtenerPDFComprobante"]);
             client.Timeout = -1;
             var request = new RestRequest(Method.POST);
-            request.AddHeader("Authorization", "Bearer " + Token);
-            request.AlwaysMultipartFormData = true;
-            request.AddParameter("Usuario", Usuario);
-            request.AddParameter("Password", Password);
-            request.AddParameter("UUID", UUID);
+            request.AddHeader("Content-Type", "application/json");
+            request.AddParameter("application/json", body, ParameterType.RequestBody);
             IRestResponse response = client.Execute(request);
             Console.WriteLine(response.Content);
 

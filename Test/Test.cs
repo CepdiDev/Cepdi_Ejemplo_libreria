@@ -14,6 +14,8 @@ namespace Test
         {
             TestFactura fac = new TestFactura();
             fac.Timbra33Test();
+            fac.Timbra40Test();
+
             CompPagos comPago = new CompPagos();
             comPago.TestPagos();            
         }
