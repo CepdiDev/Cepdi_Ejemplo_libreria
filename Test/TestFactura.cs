@@ -111,17 +111,19 @@ namespace Test
             var comprobante = new TimbradoCepdi.Comprobante40.Comprobante();
             comprobante.Emisor = new TimbradoCepdi.Comprobante40.ComprobanteEmisor()
             {
-                Nombre = "Demo S.A. DE C.V.",
+                Nombre = "XENON INDUSTRIAL ARTICLES S DE CV",
                 Rfc = "XIA190128J61",
-                RegimenFiscal = "601"
-
+                RegimenFiscal = "601"                
             };
             comprobante.Receptor = new TimbradoCepdi.Comprobante40.ComprobanteReceptor()
             {
                 Nombre = "CLIENTE DEL EXTERIOR MQ",
                 Rfc = "XEXX010101000",
-                UsoCFDI = "G01",
+                UsoCFDI = "S01",
+                DomicilioFiscalReceptor= "26670",
+                RegimenFiscalReceptor= "616"
             };
+            comprobante.Exportacion = "01";
             comprobante.Moneda = "USD";
             comprobante.MetodoPago = "PUE";
             comprobante.MetodoPagoSpecified = true; // Para que pinte el dato
@@ -134,7 +136,7 @@ namespace Test
             comprobante.Serie = "A";
             comprobante.FormaPago = "01";
             comprobante.FormaPagoSpecified = true;
-            comprobante.LugarExpedicion = "54050";
+            comprobante.LugarExpedicion = "26670";
             comprobante.TipoCambio = 19.90M;
             comprobante.TipoCambioSpecified = true;
             comprobante.NoCertificado = "30001000000300023708";
@@ -148,6 +150,7 @@ namespace Test
                 NoIdentificacion = "AC008",
                 Unidad = "PIEZA",
                 ValorUnitario = 99.00M,
+                ObjetoImp= "02",
                 Impuestos = new TimbradoCepdi.Comprobante40.ComprobanteConceptoImpuestos
                 {
                     Traslados = new TimbradoCepdi.Comprobante40.ComprobanteConceptoImpuestosTraslado[]
@@ -176,16 +179,23 @@ namespace Test
                     {
                         new TimbradoCepdi.Comprobante40.ComprobanteImpuestosTraslado
                         {
-                            Impuesto = "002", Importe = 110.88M, TipoFactor = "Tasa", TasaOCuota = 0.160000M
+                            Impuesto = "002",
+                            Importe = 110.88M,
+                            TipoFactor = "Tasa",
+                            TasaOCuota = 0.160000M,
+                            TasaOCuotaSpecified=true,
+                            ImporteSpecified = true,
+                            Base=693.00M,
+                           
                         }
                     }
             };
             var datos_Extra = new TimbradoCepdi.WS.datosExtra();
+            datos_Extra.Sello = true;
             datos_Extra.Email = "";
             //************Termina Datos Adicionales********************//
 
-            TimbradoCepdi.V33.XmlUtils timbra = new TimbradoCepdi.V33.XmlUtils();
-
+            TimbradoCepdi.V33.XmlUtils timbra = new TimbradoCepdi.V33.XmlUtils();            
             var res = timbra.Timbrar40(comprobante, "demotim@mail.com", "9feijB30Hy", datos_Extra, "D");
 
             if (!res.Exitoso)

@@ -263,7 +263,7 @@ namespace Test
 
 
             ////CANELACION de un UUID
-            var res3 = timbra.CancelaCFDI("demo1@mail.com", "Demo123#", comprobante.Emisor.Rfc, "DC235262-F38E-4CA3-9A94-B2720A170BF2", "D");            
+            var res3 = timbra.CancelaCFDI("demo1@mail.com", "Demo123#", comprobante.Emisor.Rfc, comprobante.Receptor.Rfc, comprobante.Total.ToString(),"DC235262-F38E-4CA3-9A94-B2720A170BF2",1,"", "D");            
             if (res3.CancelacionExitosa)
             {
                 Console.WriteLine("Cancelado exitosamente");

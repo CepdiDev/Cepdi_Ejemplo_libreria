@@ -57,7 +57,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="TimbradoCepdi, Version=1.0.0.0, Culture=neutral, PublicKeyToken=501654aa51b36f88, processorArchitecture=MSIL">
-      <HintPath>..\packages\TimbradoCepdi.2.0.0\lib\net451\TimbradoCepdi.dll</HintPath>
+      <HintPath>..\packages\TimbradoCepdi.2.1.0\lib\net451\TimbradoCepdi.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
