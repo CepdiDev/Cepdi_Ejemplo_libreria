@@ -49,6 +49,9 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Cepdi.ComplementoPagos, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Cepdi.ComplementoPagos.1.0.1\lib\net45\Cepdi.ComplementoPagos.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -56,8 +59,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="TimbradoCepdi, Version=1.0.0.0, Culture=neutral, PublicKeyToken=501654aa51b36f88, processorArchitecture=MSIL">
-      <HintPath>..\packages\TimbradoCepdi.2.1.0\lib\net451\TimbradoCepdi.dll</HintPath>
+    <Reference Include="TimbradoCepdi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TimbradoCepdi.2.2.1\lib\net451\TimbradoCepdi.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
