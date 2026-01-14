@@ -12,9 +12,12 @@ namespace Test
     {
         static void Main(string[] args)
         {
-            //TestFactura fac = new TestFactura();
-            //fac.Timbra33Test();
-            //fac.Timbra40Test();
+            Nominas nomina = new Nominas();
+            nomina.TestNomina();
+
+            TestFactura fac = new TestFactura();
+            fac.Timbra33Test();
+            fac.Timbra40Test();
 
             CompPagos comPago = new CompPagos();
             comPago.TestPagos();            
